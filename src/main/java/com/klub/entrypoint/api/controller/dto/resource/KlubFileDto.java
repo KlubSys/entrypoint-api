@@ -14,12 +14,17 @@ public class KlubFileDto {
     private Boolean isDir;
     private String filename;
     private String fileType;
+    private Integer level = 0;
+    private Boolean uploaded = true;
+    private String firstBlockGroupId;
+    private Integer dataBlocCount;
     private String parentId;
 
     public static KlubFileDto from(KlubFileEntity file){
         if (file == null) return null;
 
         return new KlubFileDto(file.getId(), file.getDir(), file.getFilename(), file.getFileType(),
+                file.getLevel(), file.getUploaded(), file.getFirstBlockGroupId(), file.getDataBlocCount(),
                 file.getParent() != null ? file.getParent().getId() : null);
     }
 }
