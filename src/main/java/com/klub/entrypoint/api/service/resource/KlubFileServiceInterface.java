@@ -8,7 +8,7 @@ import java.util.HashMap;
 
 public interface KlubFileServiceInterface {
 
-    KlubFileEntity create(SaveFileInput input, KlubFileEntity parent) throws ErrorOccurredException;
+    KlubFileEntity create(byte[] bytes, SaveFileInput input, KlubFileEntity parent) throws ErrorOccurredException;
 
     void update(KlubFileEntity file, HashMap<String, Object> data) throws ErrorOccurredException;
 }

@@ -21,20 +21,18 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Random;
 
 @Service
 @Transactional
-public class KlubFileService extends
-        BaseEntityCrudService<KlubFileEntity, String, KlubFileRepositoryInterface>
-        implements KlubFileServiceInterface {
+public class KlubFileService extends BaseEntityCrudService<KlubFileEntity, String, KlubFileRepositoryInterface> implements KlubFileServiceInterface {
 
     private final CustomFtpClient ftpClient;
     private final ObjectMapper defaultMapper;
     private final JobSchedulerApi jobSchedulerApi;
 
     @Autowired
-    public KlubFileService(KlubFileRepositoryInterface daoRepository, CustomFtpClient ftpClient,
-                           ObjectMapper defaultMapper, JobSchedulerApi jobSchedulerApi) {
+    public KlubFileService(KlubFileRepositoryInterface daoRepository, CustomFtpClient ftpClient, ObjectMapper defaultMapper, JobSchedulerApi jobSchedulerApi) {
         super(daoRepository);
         this.ftpClient = ftpClient;
         this.defaultMapper = defaultMapper;
@@ -42,8 +40,7 @@ public class KlubFileService extends
     }
 
     @Override
-    public KlubFileEntity create(SaveFileInput input, KlubFileEntity parent)
-            throws ErrorOccurredException {
+    public KlubFileEntity create(byte[] bytes, SaveFileInput input, KlubFileEntity parent) throws ErrorOccurredException {
         try {
             KlubFileEntity file = new KlubFileEntity();
             file.setDir(input.getIsDir());
@@ -59,17 +56,16 @@ public class KlubFileService extends
             file = daoRepository.save(file);
 
             //Upload the file via FTP
-            File fileData = new File("file.dat");// File.createTempFile("temp", "file.txt");
-            FileUtils.writeStringToFile(fileData, "Data test", "UTF-8");
-
+            int idx = (new Random()).nextInt();
+            File fileData = new File(String.format("file_%d.dat", idx));// File.createTempFile("temp", "file.txt");
+            //FileUtils.writeStringToFile(fileData, "Data test", "UTF-8");
+            FileUtils.writeByteArrayToFile(fileData, bytes);
             //ftpUploadMessagingGateway.uploadFile(file);
             final String temporaryStorageFilename = String.format("%s.klub", file.getId());
 
             boolean res = ftpClient.getInstance().storeFile(
                     //TODO path must be in a constant
-                    String.format("/klub/temp_storage/%s", temporaryStorageFilename),
-                    new FileInputStream(fileData)
-            );
+                    String.format("/klub/temp_storage/%s", temporaryStorageFilename), new FileInputStream(fileData));
             if (res) {
                 System.out.println("File uploaded");
                 file.setUploaded(true);
@@ -87,10 +83,7 @@ public class KlubFileService extends
             decompositionJobMessage.setJobType(JobTypeEnum.ONCE);
             decompositionJobMessage.setAction(JobActionEnum.FILE_DECOMPOSITION);
 
-            SubmitFileDecompositionJobMessage.SubmitFileDecompositionJobPayload payload =
-                    new SubmitFileDecompositionJobMessage.SubmitFileDecompositionJobPayload(
-                            file.getId(), temporaryStorageFilename
-                    );
+            SubmitFileDecompositionJobMessage.SubmitFileDecompositionJobPayload payload = new SubmitFileDecompositionJobMessage.SubmitFileDecompositionJobPayload(file.getId(), temporaryStorageFilename);
             decompositionJobMessage.setPayload(defaultMapper.writeValueAsString(payload));
 
             try {

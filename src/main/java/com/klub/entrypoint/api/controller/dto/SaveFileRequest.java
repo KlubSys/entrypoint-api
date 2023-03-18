@@ -10,10 +10,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class SaveFileRequest {
 
-    @JsonProperty("is_dir")
+    //@JsonProperty("is_dir")
     private Boolean isDir;
     private String filename;
-    @JsonProperty("file_type")
+    //@JsonProperty("file_type")
     private String fileType;
 
     private String parent;

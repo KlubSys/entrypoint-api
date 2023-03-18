@@ -50,8 +50,9 @@ public class CustomFtpClient {
 
     private void check() throws IOException {
         if (!ftp.isConnected() || !ftp.isAvailable()) {
-            open();
+            //open();
         }
+        open();
     }
 
     public FTPClient getInstance() throws IOException {
