@@ -7,6 +7,8 @@ import com.klub.entrypoint.api.exception.NotFoundException;
 import com.klub.entrypoint.api.model.KlubFileEntity;
 import com.klub.entrypoint.api.model.message.FileMetadataUpdatePayload;
 import com.klub.entrypoint.api.repository.KlubFileRepositoryInterface;
+import com.klub.entrypoint.api.service.api.CentralLoggerServerApi;
+import com.klub.entrypoint.api.service.api.dto.CentralServerLogMessage;
 import com.klub.entrypoint.api.service.resource.KlubFileServiceInterface;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -20,14 +22,16 @@ public class KafkaFileMetadataListener {
     private final ObjectMapper defaultMapper;
     private final KlubFileRepositoryInterface klubFileRepository;
     private final KlubFileServiceInterface klubFileService;
+    private final CentralLoggerServerApi centralLoggerServerApi;
 
     @Autowired
     public KafkaFileMetadataListener(ObjectMapper defaultMapper,
                                      KlubFileRepositoryInterface klubFileRepository,
-                                     KlubFileServiceInterface klubFileService) {
+                                     KlubFileServiceInterface klubFileService, CentralLoggerServerApi centralLoggerServerApi) {
         this.defaultMapper = defaultMapper;
         this.klubFileRepository = klubFileRepository;
         this.klubFileService = klubFileService;
+        this.centralLoggerServerApi = centralLoggerServerApi;
     }
 
     @KafkaListener(topics = "file_metadata", groupId = "group0")
@@ -35,6 +39,8 @@ public class KafkaFileMetadataListener {
         System.out.println("Received Data " + data);
 
         try {
+            centralLoggerServerApi.dispatchLog(CentralServerLogMessage.builder()
+                    .text("File Update request received").build());
             FileMetadataUpdatePayload payload = defaultMapper
                     .readValue(data, FileMetadataUpdatePayload.class);
 
@@ -42,7 +48,7 @@ public class KafkaFileMetadataListener {
             if (fileCtn.isEmpty()) throw new NotFoundException("No file found");
 
             klubFileService.update(fileCtn.get(), payload.getData());
-        } catch (JsonProcessingException | NotFoundException | ErrorOccurredException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }

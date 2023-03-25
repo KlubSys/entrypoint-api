@@ -27,7 +27,7 @@ public class CustomFtpClient {
     private FTPClient ftp;
 
     public void open() throws IOException {
-        if (ftp != null) return;
+        //if (ftp != null) return;
 
         ftp = new FTPClient();
 
@@ -42,6 +42,7 @@ public class CustomFtpClient {
         }
 
         ftp.login(username, password);
+        ftp.setSoTimeout(1000 * 60 * 60);
     }
 
     public void close() throws IOException {
@@ -50,9 +51,9 @@ public class CustomFtpClient {
 
     private void check() throws IOException {
         if (!ftp.isConnected() || !ftp.isAvailable()) {
-            //open();
+            open();
         }
-        open();
+        //open();
     }
 
     public FTPClient getInstance() throws IOException {

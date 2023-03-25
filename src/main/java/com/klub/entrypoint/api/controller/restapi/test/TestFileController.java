@@ -9,8 +9,9 @@ import com.klub.entrypoint.api.exception.NotFoundException;
 import com.klub.entrypoint.api.model.KlubFileEntity;
 import com.klub.entrypoint.api.model.dto.SaveFileInput;
 import com.klub.entrypoint.api.repository.KlubFileRepositoryInterface;
+import com.klub.entrypoint.api.service.api.CentralLoggerServerApi;
+import com.klub.entrypoint.api.service.api.dto.CentralServerLogMessage;
 import com.klub.entrypoint.api.service.resource.KlubFileServiceInterface;
-import org.apache.catalina.authenticator.SavedRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,9 +19,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.validation.Valid;
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -33,20 +32,21 @@ public class TestFileController {
     private final KlubFileServiceInterface klubFileService;
     private final KlubFileRepositoryInterface klubFileRepository;
     private final ObjectMapper defaultMapper;
+    private final CentralLoggerServerApi centralLoggerServerApi;
 
     @Autowired
     public TestFileController(KlubFileServiceInterface klubFileService,
-                              KlubFileRepositoryInterface klubFileRepository, ObjectMapper defaultMapper) {
+                              KlubFileRepositoryInterface klubFileRepository, ObjectMapper defaultMapper, CentralLoggerServerApi centralLoggerServerApi) {
         this.klubFileService = klubFileService;
         this.klubFileRepository = klubFileRepository;
         this.defaultMapper = defaultMapper;
+        this.centralLoggerServerApi = centralLoggerServerApi;
     }
 
     @PostMapping
     ResponseEntity<KlubFileDto> createFile(@RequestParam("file") MultipartFile uploadedFile,
                                            @RequestParam("data") String data)
-            throws NotFoundException,
-            ErrorOccurredException, IOException {
+            throws Exception {
         SaveFileRequest body = defaultMapper.readValue(data, new TypeReference<>() {});
 
         KlubFileEntity parent = null;
@@ -65,6 +65,8 @@ public class TestFileController {
         input.setFilename(body.getFilename());
         input.setIsDir(body.getIsDir());
 
+        centralLoggerServerApi.dispatchLog(CentralServerLogMessage.builder()
+                .text("Uploading File").build());
         KlubFileEntity file = klubFileService.create(uploadedFile.getBytes(), input,
                 body.getParent() == null ? null : parent);
         KlubFileDto data2 = KlubFileDto.from(file);

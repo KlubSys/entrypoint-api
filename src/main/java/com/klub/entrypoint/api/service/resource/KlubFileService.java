@@ -10,7 +10,9 @@ import com.klub.entrypoint.api.model.dto.SaveFileInput;
 import com.klub.entrypoint.api.model.message.SubmitFileDecompositionJobMessage;
 import com.klub.entrypoint.api.repository.KlubFileRepositoryInterface;
 import com.klub.entrypoint.api.service.BaseEntityCrudService;
+import com.klub.entrypoint.api.service.api.CentralLoggerServerApi;
 import com.klub.entrypoint.api.service.api.JobSchedulerApi;
+import com.klub.entrypoint.api.service.api.dto.CentralServerLogMessage;
 import com.klub.entrypoint.api.service.api.dto.SubmitDecompositionJobApiResponse;
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,13 +32,15 @@ public class KlubFileService extends BaseEntityCrudService<KlubFileEntity, Strin
     private final CustomFtpClient ftpClient;
     private final ObjectMapper defaultMapper;
     private final JobSchedulerApi jobSchedulerApi;
+    private final CentralLoggerServerApi centralLoggerServerApi;
 
     @Autowired
-    public KlubFileService(KlubFileRepositoryInterface daoRepository, CustomFtpClient ftpClient, ObjectMapper defaultMapper, JobSchedulerApi jobSchedulerApi) {
+    public KlubFileService(KlubFileRepositoryInterface daoRepository, CustomFtpClient ftpClient, ObjectMapper defaultMapper, JobSchedulerApi jobSchedulerApi, CentralLoggerServerApi centralLoggerServerApi) {
         super(daoRepository);
         this.ftpClient = ftpClient;
         this.defaultMapper = defaultMapper;
         this.jobSchedulerApi = jobSchedulerApi;
+        this.centralLoggerServerApi = centralLoggerServerApi;
     }
 
     @Override
@@ -71,8 +75,13 @@ public class KlubFileService extends BaseEntityCrudService<KlubFileEntity, Strin
                 file.setUploaded(true);
                 file.setTemporaryStorageFilename(temporaryStorageFilename);
                 file = daoRepository.save(file);
+
+                centralLoggerServerApi.dispatchLog(CentralServerLogMessage.builder()
+                        .text("File Uploaded to temporary server").build());
             } else {
                 daoRepository.delete(file);
+                centralLoggerServerApi.dispatchLog(CentralServerLogMessage.builder()
+                        .text("File Upload failed - Rooled Back").build());
                 throw new ErrorOccurredException("File not uploaded");
             }
 
@@ -88,13 +97,20 @@ public class KlubFileService extends BaseEntityCrudService<KlubFileEntity, Strin
 
             try {
                 //TODO uncomment;
+                centralLoggerServerApi.dispatchLog(CentralServerLogMessage.builder()
+                        .text("Submitting decomposition Job").build());
                 SubmitDecompositionJobApiResponse ctn = jobSchedulerApi.submitJob(decompositionJobMessage);
+                centralLoggerServerApi.dispatchLog(CentralServerLogMessage.builder()
+                        .text("Submitting decomposition Job [OK]").build());
                 file.setJobId(ctn.getJobId());
                 file.setJobScheduled(true);
                 file = daoRepository.save(file);
+                fileData.delete();
             } catch (Exception e) {
                 System.err.println(e.getMessage());
                 e.printStackTrace();
+                centralLoggerServerApi.dispatchLog(CentralServerLogMessage.builder()
+                        .text("Submit decomposition Job [NON OK] rolling back").build());
                 throw new ErrorOccurredException("Can't submit the decomposition job");
             }
 
