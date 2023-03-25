@@ -53,7 +53,7 @@ public class CustomFtpClient {
         if (!ftp.isConnected() || !ftp.isAvailable()) {
             open();
         }
-        //open();
+        open();
     }
 
     public FTPClient getInstance() throws IOException {
