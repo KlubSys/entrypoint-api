@@ -66,7 +66,9 @@ public class TestFileController {
         input.setIsDir(body.getIsDir());
 
         centralLoggerServerApi.dispatchLog(CentralServerLogMessage.builder()
-                .text("Uploading File").build());
+                .text("Uploading File").build()
+                .addData("filename", body.getFilename())
+                .addData("fileType", body.getFileType()));
         KlubFileEntity file = klubFileService.create(uploadedFile.getBytes(), input,
                 body.getParent() == null ? null : parent);
         KlubFileDto data2 = KlubFileDto.from(file);

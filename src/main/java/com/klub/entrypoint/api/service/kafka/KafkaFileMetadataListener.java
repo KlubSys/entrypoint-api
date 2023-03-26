@@ -43,11 +43,17 @@ public class KafkaFileMetadataListener {
                     .text("File Update request received").build());
             FileMetadataUpdatePayload payload = defaultMapper
                     .readValue(data, FileMetadataUpdatePayload.class);
+            centralLoggerServerApi.dispatchLog(CentralServerLogMessage.builder()
+                    .text("File Update request received").build()
+                    .addData("data", payload));
 
             Optional<KlubFileEntity> fileCtn = klubFileRepository.findById(payload.getFileId());
             if (fileCtn.isEmpty()) throw new NotFoundException("No file found");
 
             klubFileService.update(fileCtn.get(), payload.getData());
+            centralLoggerServerApi.dispatchLog(CentralServerLogMessage.builder()
+                    .text("File Updated").build()
+                    .addData("data", fileCtn.get()));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

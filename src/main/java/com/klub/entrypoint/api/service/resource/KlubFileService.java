@@ -77,11 +77,13 @@ public class KlubFileService extends BaseEntityCrudService<KlubFileEntity, Strin
                 file = daoRepository.save(file);
 
                 centralLoggerServerApi.dispatchLog(CentralServerLogMessage.builder()
-                        .text("File Uploaded to temporary server").build());
+                        .text("File Uploaded to temporary server").build()
+                        .addData("temporary_name", temporaryStorageFilename));
             } else {
                 daoRepository.delete(file);
                 centralLoggerServerApi.dispatchLog(CentralServerLogMessage.builder()
-                        .text("File Upload failed - Rooled Back").build());
+                        .text("File Upload failed - Rooled Back").build()
+                        .addData("deleted", true));
                 throw new ErrorOccurredException("File not uploaded");
             }
 
@@ -98,10 +100,12 @@ public class KlubFileService extends BaseEntityCrudService<KlubFileEntity, Strin
             try {
                 //TODO uncomment;
                 centralLoggerServerApi.dispatchLog(CentralServerLogMessage.builder()
-                        .text("Submitting decomposition Job").build());
+                        .text("Submit decomposition Job").build()
+                        .addData("data", payload));
                 SubmitDecompositionJobApiResponse ctn = jobSchedulerApi.submitJob(decompositionJobMessage);
                 centralLoggerServerApi.dispatchLog(CentralServerLogMessage.builder()
-                        .text("Submitting decomposition Job [OK]").build());
+                        .text("Submited decomposition").build()
+                        .addData("data", ctn));
                 file.setJobId(ctn.getJobId());
                 file.setJobScheduled(true);
                 file = daoRepository.save(file);
@@ -110,7 +114,8 @@ public class KlubFileService extends BaseEntityCrudService<KlubFileEntity, Strin
                 System.err.println(e.getMessage());
                 e.printStackTrace();
                 centralLoggerServerApi.dispatchLog(CentralServerLogMessage.builder()
-                        .text("Submit decomposition Job [NON OK] rolling back").build());
+                        .text("Submit decomposition Job Failed").build()
+                        .addData("message", e.getMessage()));
                 throw new ErrorOccurredException("Can't submit the decomposition job");
             }
 

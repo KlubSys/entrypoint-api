@@ -1,6 +1,8 @@
 package com.klub.entrypoint.api.service.listener;
 
 import com.klub.entrypoint.api.configs.ftp.CustomFtpClient;
+import com.klub.entrypoint.api.service.api.CentralLoggerServerApi;
+import com.klub.entrypoint.api.service.api.dto.CentralServerLogMessage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationStartedEvent;
 import org.springframework.context.ApplicationListener;
@@ -12,17 +14,23 @@ import java.io.IOException;
 public class ApplicationStartFtpListener implements ApplicationListener<ApplicationStartedEvent> {
 
     private final CustomFtpClient ftpClient;
+    private final CentralLoggerServerApi centralLoggerServerApi;
 
     @Autowired
-    public ApplicationStartFtpListener(CustomFtpClient ftpClient) {
+    public ApplicationStartFtpListener(CustomFtpClient ftpClient, CentralLoggerServerApi centralLoggerServerApi) {
         this.ftpClient = ftpClient;
+        this.centralLoggerServerApi = centralLoggerServerApi;
     }
 
     @Override
     public void onApplicationEvent(ApplicationStartedEvent event) {
         try {
             ftpClient.open();
-        } catch (IOException e) {
+
+            centralLoggerServerApi.dispatchLog(CentralServerLogMessage.builder()
+                    .text("Application started").build()
+                    .addData("ftp", "started"));
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
